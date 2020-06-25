@@ -1,0 +1,122 @@
+                             Project Assignment- 1
+======================
+### Mean total steps taken per day
+Reading and having a first look at data
+```{r}
+activity <- read.csv("activity.csv")
+names(activity)
+str(activity)
+head(activity)
+```
+Total steps taken in a day
+```{r}
+totalsteps <- aggregate(steps~date, data = activity, FUN = sum, na.rm=T)
+# Have a look at dataset
+head(totalsteps)
+#plotting graph
+hist(totalsteps$steps, xlab = "Steps per day", main = "total number of steps per day", col = "red")
+```
+Mean and median steps
+```{r}
+meansteps <- mean(totalsteps$steps)
+mediansteps <- median(totalsteps$steps)
+meansteps
+mediansteps
+```
+### Average daily activity pattern
+
+```{r}
+intervalsteps <- aggregate(steps~interval, data = activity, FUN=mean, na.rm = T)
+#have a look at dataset
+str(intervalsteps)
+head(intervalsteps)
+plot(intervalsteps$interval, intervalsteps$steps, col = "green", xlab = "Intervals", ylab = "Total Steps per interval", main = "Number of steps per interval", type = "l")
+```
+Finding max. steps
+```{r}
+maxsteps <- max(intervalsteps$steps)
+#Maximun number of steps aken in a 5 min. interval is:
+maxsteps
+maxinterval <- intervalsteps$interval[which(intervalsteps$steps == maxsteps)]
+#interval in which max. steps are taken is:
+maxinterval
+```
+### Imputing missing vaues
+```{r}
+#The number of missing values in out activity dataset is:
+sum(is.na(activity))
+```
+Strategy for filling the NA's
+```{r}
+missingvalues <- subset(activity, is.na(steps))
+par(mfrow = c(2,1), mar = c(3,3,2,2))
+hist(missingvalues$interval, main = "NA's per interval")
+hist(as.POSIXct(missingvalues$date), main = "NA's per date", breaks = 61)
+#we can see that NA's run equally over all interval but in days it is available for only 8 days, so we will take of mean of date across all dataset
+```
+
+Creating new data set with missing values
+```{r}
+meanstepinterval <- tapply(activity$steps, activity$interval, mean, na.rm = T)
+activityna <- activity[is.na(activity$steps),]
+activitynonna <- activity[!is.na(activity$steps),]
+activityna$steps <- as.factor(activityna$interval)
+levels(activityna$steps) <- meanstepinterval
+levels(activityna$steps) <- round(as.numeric(levels(activityna$steps)))
+activityna$steps <- as.integer(as.vector(activityna$steps))
+imputedactivity <- rbind(activityna, activitynonna)
+str(imputedactivity)
+sum(is.na(imputedactivity))
+# Thus all the NA's have been removed
+```
+
+Histogram of total number of steps taken in each day
+
+```{r}
+par(mfrow = c(1,2))
+activitysteps <- aggregate(steps~date, data = activity, FUN = sum, na.rm =T)
+hist(activitysteps$steps, xlab = "Steps per day", main ="Total steps per day, no NA's", col = "blue")
+impactivitysteps <- aggregate(steps~date, data = imputedactivity, FUN=sum)
+hist(impactivitysteps$steps, xlab ="Steps per day", main ="NA's imputed, Total steps per day", col = "blue")
+
+imputedmean <- mean(impactivitysteps$steps)
+imputedmedian <- median(impactivitysteps$steps)
+imputedmean
+imputedmedian
+
+result_mm <- data.frame(c(meansteps, mediansteps), c(imputedmean, imputedmedian))
+colnames(result_mm) <- c("NA removed", "Imputed NA values")
+rownames(result_mm) <- c("mean", "median")
+result_mm
+
+#Conclusion : imputing NA has no big effect on mean and median
+```
+
+###Difference in weekands and weekdays
+
+```{r}
+imputedactivity$daytype <- ifelse(weekdays(as.Date(imputedactivity$date)) == c("Saturday", "Sunday"), "Weekend", "weekday")
+head(imputedactivity)
+imputedactivity$daytype <- factor(imputedactivity$daytype)
+stepsdaytype <- aggregate(steps~interval + daytype, data = imputedactivity, FUN = mean)
+head(stepsdaytype)
+
+library(ggplot2)
+g <- ggplot(stepsdaytype, aes(interval, steps))
+g + geom_line(col = "green") + facet_grid(daytype~.) + labs(x="Intervals", y = "Average Steps", title = "Activity Pattern")
+```
+
+
+
+
+
+
+
+
+
+### Conclusion : The subject gets an early start on weekdays then weekends
+
+
+
+
+
